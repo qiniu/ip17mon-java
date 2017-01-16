@@ -1,0 +1,67 @@
+import java.util.regex.Matcher
+
+apply plugin: 'java'
+
+sourceCompatibility = 1.6
+targetCompatibility = 1.6
+version = '1.0'
+[compileJava,compileTestJava,javadoc]*.options*.encoding = 'UTF-8'
+
+//[compileJava, compileTestJava]*.options.collect {options ->
+//    options.debug = true
+//    options.deprecation = true
+//    options.compilerArgs.add '-Xlint'
+//    options.compilerArgs.add '-Xlint:-unchecked'
+//    options.compilerArgs.add '-Xlint:-serial'
+//    options.compilerArgs.add '-Xlint:-rawtypes'
+//}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:unchecked"
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+
+task getHomeDir << {
+    println gradle.gradleHomeDir
+}
+
+apply plugin: 'checkstyle'
+
+
+def versionName() {
+    String config = 'src/main/java/qiniu/ip17mon/Locator.java'
+    String fileContents = new File(config).text
+    Matcher myMatcher = fileContents =~ /VERSION = "(.+)";/
+    String version = myMatcher[0][1]
+    println(version)
+    return version
+}
+
+def versionNameToCode(String version) {
+    String v = version.replaceAll(/\./, '')
+    return v.toLong()
+}
+
+String version = versionName()
+int code = versionNameToCode(version)
+
+setProperty('VERSION_NAME', version)
+setProperty('VERSION_CODE', code)
+
+apply from: 'mvn_push.gradle'
+
+apply plugin: 'eclipse'
+
+task gen_eclipse(dependsOn:[
+'cleanEclipseProject', 'cleanEclipseClasspath',
+'eclipseProject', 'eclipseClasspath'])
+eclipseProject.mustRunAfter cleanEclipseProject
+eclipseClasspath.mustRunAfter cleanEclipseClasspath
