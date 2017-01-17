@@ -28,4 +28,8 @@ public final class LocationInfo {
     public int hashCode() {
         return country.hashCode() * 31 * 31 * 31 + state.hashCode() * 31 * 31 + city.hashCode() * 31 + isp.hashCode();
     }
+
+    public String toString() {
+        return country + " " + state + " " + city + " " + isp;
+    }
 }

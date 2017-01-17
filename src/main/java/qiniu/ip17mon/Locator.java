@@ -8,14 +8,15 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.InputMismatchException;
 
-public final class Locator {
-    public static final String VERSION = "0.0.1";
+public final class Locator implements ILocator {
+    public static final String VERSION = "0.0.2";
     private final byte[] ipData;
     private final int textOffset;
+    private final int[] index;
     private final int[] indexData1;
     private final int[] indexData2;
-    private final int[] indexData3;
-    private final int[] index;
+    private final byte[] indexData3;
+
 
     private Locator(byte[] data) {
         this.ipData = data;
@@ -29,14 +30,14 @@ public final class Locator {
         int nidx = (textOffset - 4 - 1024 - 1024) / 8;
         indexData1 = new int[nidx];
         indexData2 = new int[nidx];
-        indexData3 = new int[nidx];
+        indexData3 = new byte[nidx];
 
         for (int i = 0, off = 0; i < nidx; i++) {
             off = 4 + 1024 + i * 8;
             indexData1[i] = bigEndian(ipData, off);
             indexData2[i] = ((int) ipData[off + 6] & 0xff) << 16 | ((int) ipData[off + 5] & 0xff) << 8
                     | ((int) ipData[off + 4] & 0xff);
-            indexData3[i] = ((int) ipData[off + 7]) & 0xff;
+            indexData3[i] = ipData[off + 7];
         }
     }
 
@@ -112,8 +113,14 @@ public final class Locator {
         InputStream is = httpConn.getInputStream();
         byte[] data = new byte[length];
         int downloaded = 0;
+        int read = 0;
         while (downloaded < length) {
-            int read = is.read(data, downloaded, length - downloaded);
+            try {
+                read = is.read(data, downloaded, length - downloaded);
+            } catch (IOException e) {
+                is.close();
+                throw new IOException("read error");
+            }
             if (read < 0) {
                 is.close();
                 throw new IOException("read error");
@@ -150,15 +157,18 @@ public final class Locator {
         return new Locator(ipdb);
     }
 
-    public LocationInfo find(String ip) {
-        byte[] b;
-        try {
-            b = textToNumericFormatV4(ip);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+    public static void main(String[] args) {
+        if (args == null || args.length < 2) {
+            System.out.println("locator ipfile ip");
+            return;
         }
-        return find(b);
+        try {
+            Locator l = loadFromLocal(args[0]);
+            System.out.println(l.find(args[1]));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private int findIndexOffset(long ip, int start, int end) {
@@ -179,6 +189,16 @@ public final class Locator {
         return start;
     }
 
+    public LocationInfo find(String ip) {
+        byte[] b;
+        try {
+            b = textToNumericFormatV4(ip);
+        } catch (Exception e) {
+            return null;
+        }
+        return find(b);
+    }
+
     public LocationInfo find(byte[] ipBin) {
         int end = indexData1.length - 1;
         int a = 0xff & ((int) ipBin[0]);
@@ -188,17 +208,32 @@ public final class Locator {
         long ip = (long) bigEndian(ipBin, 0) & 0xffffffffL;
         int idx = findIndexOffset(ip, index[a], end);
         int off = indexData2[idx];
-        return buildInfo(ipData, textOffset - 1024 + off, indexData3[idx]);
+        return buildInfo(ipData, textOffset - 1024 + off, 0xff & (int) indexData3[idx]);
     }
 
     public LocationInfo find(int address) {
         byte[] addr = new byte[4];
 
-        addr[0] = (byte) ((address >>> 24) & 0xFF);
-        addr[1] = (byte) ((address >>> 16) & 0xFF);
-        addr[2] = (byte) ((address >>> 8) & 0xFF);
-        addr[3] = (byte) (address & 0xFF);
+        addr[0] = (byte) ((address >> 24) & 0xff);
+        addr[1] = (byte) ((address >> 16) & 0xff);
+        addr[2] = (byte) ((address >> 8) & 0xff);
+        addr[3] = (byte) (address & 0xff);
 
         return find(addr);
+    }
+
+    public void checkDb() throws IOException {
+        byte[] addr = new byte[4];
+        try {
+            for (long x = 0; x < 0xffffffffL; x++) {
+                addr[0] = (byte) ((x >> 24) & 0xff);
+                addr[1] = (byte) ((x >> 16) & 0xff);
+                addr[2] = (byte) ((x >> 8) & 0xff);
+                addr[3] = (byte) (x & 0xff);
+                find(addr);
+            }
+        } catch (Exception e) {
+            throw new IOException(e);
+        }
     }
 }

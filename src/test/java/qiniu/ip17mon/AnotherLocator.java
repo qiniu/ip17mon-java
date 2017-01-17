@@ -34,7 +34,6 @@ public final class AnotherLocator {
         int loop = 0;
         while (loop++ < 256) {
             index[loop - 1] = indexBuffer.getInt();
-//            System.out.println(index[loop - 1]);
         }
         indexBuffer.order(ByteOrder.BIG_ENDIAN);
     }
@@ -120,7 +119,6 @@ public final class AnotherLocator {
 
     public String[] find(String ip) {
         int ip_prefix_value = new Integer(ip.substring(0, ip.indexOf(".")));
-        System.out.println("xxxx " + ip_prefix_value);
         long ip2long_value = ip2long(ip);
         int start = index[ip_prefix_value];
         int max_comp_len = offset - 1028;
