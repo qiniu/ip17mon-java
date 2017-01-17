@@ -74,9 +74,9 @@ public class LocationTest {
         Assert.assertEquals(new LocationInfo("GOOGLE", "GOOGLE", "", ""), info);
         info = locator.find("183.131.7.18");
         Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", ""), info);
-        info = locator.find(new byte[]{(byte)183,(byte) 131,7,18});
+        info = locator.find(new byte[]{(byte) 183, (byte) 131, 7, 18});
         Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", ""), info);
-        info = locator.find(Locator.bigEndian(new byte[]{(byte)183,(byte) 131,7,18},0));
+        info = locator.find(Locator.bigEndian(new byte[]{(byte) 183, (byte) 131, 7, 18}, 0));
         Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", ""), info);
 
     }
@@ -99,8 +99,8 @@ public class LocationTest {
         long t1 = System.currentTimeMillis();
         l.checkDb();
         long t2 = System.currentTimeMillis();
-        System.out.println("total time " + (t2-t1));
-        System.out.println("Ops " + (0xffffffffL*1000/(t2-t1)));
+        System.out.println("total time " + (t2 - t1));
+        System.out.println("Ops " + (0xffffffffL * 1000 / (t2 - t1)));
 
     }
 }
