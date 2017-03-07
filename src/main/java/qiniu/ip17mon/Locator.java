@@ -6,10 +6,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.InputMismatchException;
 
 public final class Locator implements ILocator {
-    public static final String VERSION = "0.0.2";
+    public static final String VERSION = "0.1";
+    private static final Charset Utf8 = Charset.forName("UTF-8");
     private final byte[] ipData;
     private final int textOffset;
     private final int[] index;
@@ -82,8 +84,8 @@ public final class Locator implements ILocator {
     }
 
     static LocationInfo buildInfo(byte[] bytes, int offset, int len) {
-        String str = new String(bytes, offset, len);
-        String[] ss = str.split("\t");
+        String str = new String(bytes, offset, len, Utf8);
+        String[] ss = str.split("\t", -1);
         if (ss.length == 4) {
             return new LocationInfo(ss[0], ss[1], ss[2], "");
         } else if (ss.length == 5) {
