@@ -154,6 +154,31 @@ public final class Locator implements ILocator {
 
         return loadBinary(b);
     }
+    
+    public static Locator loadFromHDFS(String dfsPath) throws Exception {
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.get(conf);
+
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        Path filePath = new Path(dfsPath);
+
+        if(fs.exists(filePath)){
+            FSDataInputStream in = fs.open(filePath);
+            byte[] buffer = new byte[1];
+
+            while (in.read(buffer) != -1){
+                byteArrayOutputStream.write(buffer);
+            }
+        } else {
+            throw new Exception("File does not exists!");
+        }
+
+        // Using in Spark, don't close it.
+        //fs.close();
+
+        return loadBinary(byteArrayOutputStream.toByteArray());
+    }
 
     public static Locator loadBinary(byte[] ipdb) {
         return new Locator(ipdb);
