@@ -1,16 +1,13 @@
 package qiniu.ip17mon;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.InputMismatchException;
 
 public final class Locator implements ILocator {
-    public static final String VERSION = "0.1.1";
+    public static final String VERSION = "0.1.2";
     private static final Charset Utf8 = Charset.forName("UTF-8");
     private final byte[] ipData;
     private final int textOffset;
@@ -154,28 +151,19 @@ public final class Locator implements ILocator {
 
         return loadBinary(b);
     }
-    
-    public static Locator loadFromHDFS(String dfsPath) throws Exception {
-        Configuration conf = new Configuration();
-        FileSystem fs = FileSystem.get(conf);
 
+    public static Locator loadFromStream(InputStream in) throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-
-        Path filePath = new Path(dfsPath);
-
-        if(fs.exists(filePath)){
-            FSDataInputStream in = fs.open(filePath);
-            byte[] buffer = new byte[1];
-
-            while (in.read(buffer) != -1){
-                byteArrayOutputStream.write(buffer);
-            }
-        } else {
-            throw new Exception("File does not exists!");
+        byte[] buffer = new byte[16 * 1024];
+        while (in.read(buffer) != -1) {
+            byteArrayOutputStream.write(buffer);
         }
 
-        // Using in Spark, don't close it.
-        //fs.close();
+        int n = 0;
+
+        while ((n = in.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, n);
+        }
 
         return loadBinary(byteArrayOutputStream.toByteArray());
     }
@@ -260,7 +248,7 @@ public final class Locator implements ILocator {
                 find(addr);
             }
         } catch (Exception e) {
-            throw new IOException(e);
+            throw new IOException(e.getMessage());
         }
     }
 }
