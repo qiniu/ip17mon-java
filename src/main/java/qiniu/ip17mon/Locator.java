@@ -155,11 +155,7 @@ public final class Locator implements ILocator {
     public static Locator loadFromStream(InputStream in) throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[16 * 1024];
-        while (in.read(buffer) != -1) {
-            byteArrayOutputStream.write(buffer);
-        }
-
-        int n = 0;
+        int n;
 
         while ((n = in.read(buffer)) != -1) {
             byteArrayOutputStream.write(buffer, 0, n);
