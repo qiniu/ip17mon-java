@@ -109,7 +109,7 @@ public final class Locator implements ILocator {
         }
 
         int length = httpConn.getContentLength();
-        if (length <= 0 || length > 10 * 1024 * 1024) {
+        if (length <= 0 || length > 20 * 1024 * 1024) {
             throw new InputMismatchException("invalid ip data");
         }
         InputStream is = httpConn.getInputStream();
