@@ -7,7 +7,7 @@ import java.nio.charset.Charset;
 import java.util.InputMismatchException;
 
 public final class Locator implements ILocator {
-    public static final String VERSION = "0.2.0";
+    public static final String VERSION = "0.2.1";
     private static final Charset Utf8 = Charset.forName("UTF-8");
     private final byte[] ipData;
     private final int textOffset;
@@ -218,7 +218,7 @@ public final class Locator implements ILocator {
         return loadBinaryUnkown(byteArrayOutputStream.toByteArray());
     }
 
-    public static Locator loadFromStreamOld(InputStream in, boolean x) throws Exception {
+    public static Locator loadFromStreamOld(InputStream in) throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[16 * 1024];
         int n;
@@ -227,7 +227,7 @@ public final class Locator implements ILocator {
             byteArrayOutputStream.write(buffer, 0, n);
         }
 
-        return loadBinary(byteArrayOutputStream.toByteArray(), x);
+        return loadBinaryOld(byteArrayOutputStream.toByteArray());
     }
 
     public static Locator loadBinary(byte[] ipdb, boolean x) {
@@ -240,10 +240,6 @@ public final class Locator implements ILocator {
 
     public static Locator loadBinaryOld(byte[] ipdb) {
         return loadBinary(ipdb, false);
-    }
-
-    public static Locator loadBinaryX(byte[] ipdb) {
-        return loadBinary(ipdb, true);
     }
 
     public static void main(String[] args) {
