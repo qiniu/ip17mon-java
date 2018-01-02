@@ -69,7 +69,7 @@ public class LocationTest {
         Assert.assertEquals(new LocationInfo("中国", "上海", "上海", "电信"), l);
     }
 
-    private void testLocator(Locator locator) {
+    private void checkFreeLocator(Locator locator) {
         LocationInfo info = locator.find("8.8.8.8");
         Assert.assertEquals(new LocationInfo("GOOGLE", "GOOGLE", "", ""), info);
         info = locator.find("183.131.7.18");
@@ -78,20 +78,36 @@ public class LocationTest {
         Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", ""), info);
         info = locator.find(Locator.bigEndian(new byte[]{(byte) 183, (byte) 131, 7, 18}, 0));
         Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", ""), info);
+    }
 
+    private void checkFullLocator(Locator locator) {
+        LocationInfo info = locator.find("8.8.8.8");
+        Assert.assertEquals(new LocationInfo("GOOGLE.COM", "GOOGLE.COM", "", "level3.com"), info);
+        info = locator.find("183.131.7.18");
+        Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", "电信"), info);
+        info = locator.find(new byte[]{(byte) 183, (byte) 131, 7, 18});
+        Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", "电信"), info);
+        info = locator.find(Locator.bigEndian(new byte[]{(byte) 183, (byte) 131, 7, 18}, 0));
+        Assert.assertEquals(new LocationInfo("中国", "浙江", "杭州", "电信"), info);
     }
 
     @Test
-    public void testNetLoad() throws IOException {
+    public void testNetLoadFree() throws IOException {
         Locator l = Locator.loadFromNet("http://7j1xnu.com1.z0.glb.clouddn.com/17monipdb.dat");
-        testLocator(l);
+        checkFreeLocator(l);
     }
 
     @Test
-    public void testLocalLoad() throws IOException {
+    public void testLocalLoadFree() throws IOException {
         Locator l = Locator.loadFromLocal("17monipdb.dat");
-        testLocator(l);
+        checkFreeLocator(l);
     }
+
+//    @Test
+//    public void testLocalLoadFull() throws IOException {
+//        Locator l = Locator.loadFromLocal("mydata4vipday2.datx");
+//        checkFullLocator(l);
+//    }
 
 
     public void bench() throws IOException {

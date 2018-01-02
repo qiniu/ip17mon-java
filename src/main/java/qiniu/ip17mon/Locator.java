@@ -7,36 +7,65 @@ import java.nio.charset.Charset;
 import java.util.InputMismatchException;
 
 public final class Locator implements ILocator {
-    public static final String VERSION = "0.1.2";
+    public static final String VERSION = "0.2.0";
     private static final Charset Utf8 = Charset.forName("UTF-8");
     private final byte[] ipData;
     private final int textOffset;
     private final int[] index;
-    private final int[] indexData1;
-    private final int[] indexData2;
-    private final byte[] indexData3;
+    private final int[] indexData;
+    private final int[] textStartIndex;
+    private final short[] textLengthIndex;
+    public final boolean x;
 
 
     private Locator(byte[] data) {
+        this(data, (data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0) && data[8] == 0 && data[9] == 0);
+    }
+
+    private Locator(byte[] data, boolean x) {
+        this.x = x;
         this.ipData = data;
-        this.textOffset = bigEndian(data, 0);
-
+        int offset = bigEndian(data, 0);
         this.index = new int[256];
-        for (int i = 0; i < 256; i++) {
-            index[i] = littleEndian(data, 4 + i * 4);
-        }
+        if (x) {
 
-        int nidx = (textOffset - 4 - 1024 - 1024) / 8;
-        indexData1 = new int[nidx];
-        indexData2 = new int[nidx];
-        indexData3 = new byte[nidx];
+            textOffset = offset - 256 * 256 * 4;
 
-        for (int i = 0, off = 0; i < nidx; i++) {
-            off = 4 + 1024 + i * 8;
-            indexData1[i] = bigEndian(ipData, off);
-            indexData2[i] = ((int) ipData[off + 6] & 0xff) << 16 | ((int) ipData[off + 5] & 0xff) << 8
-                    | ((int) ipData[off + 4] & 0xff);
-            indexData3[i] = ipData[off + 7];
+            for (int i = 0; i < 256; i++) {
+                index[i] = littleEndian(data, 4 + i * 4 * 256);
+            }
+
+            int nidx = (textOffset - 4 - 256 * 256 * 4) / 9;
+            indexData = new int[nidx];
+            textStartIndex = new int[nidx];
+            textLengthIndex = new short[nidx];
+
+            for (int i = 0, off = 0; i < nidx; i++) {
+                off = 4 + 256 * 256 * 4 + i * 9;
+                indexData[i] = bigEndian(ipData, off);
+                textStartIndex[i] = ((int) ipData[off + 6] & 0xff) << 16 | ((int) ipData[off + 5] & 0xff) << 8
+                        | ((int) ipData[off + 4] & 0xff);
+                textLengthIndex[i] = (short) (((int) ipData[off + 7] & 0xff) << 8 | ((int) ipData[off + 8] & 0xff));
+            }
+        } else {
+
+            for (int i = 0; i < 256; i++) {
+                index[i] = littleEndian(data, 4 + i * 4);
+            }
+            textOffset = offset - 1024;
+
+            int nIdx = (textOffset - 4 - 1024) / 8;
+            indexData = new int[nIdx];
+            textStartIndex = new int[nIdx];
+            textLengthIndex = new short[nIdx];
+
+            for (int i = 0, off = 0; i < nIdx; i++) {
+                off = 4 + 1024 + i * 8;
+                indexData[i] = bigEndian(ipData, off);
+                textStartIndex[i] = ((int) ipData[off + 6] & 0xff) << 16 | ((int) ipData[off + 5] & 0xff) << 8
+                        | ((int) ipData[off + 4] & 0xff);
+                textLengthIndex[i] = ipData[off + 7];
+            }
         }
     }
 
@@ -85,7 +114,7 @@ public final class Locator implements ILocator {
         String[] ss = str.split("\t", -1);
         if (ss.length == 4) {
             return new LocationInfo(ss[0], ss[1], ss[2], "");
-        } else if (ss.length == 5) {
+        } else if (ss.length >= 5) {
             return new LocationInfo(ss[0], ss[1], ss[2], ss[4]);
         } else if (ss.length == 3) {
             return new LocationInfo(ss[0], ss[1], ss[2], "");
@@ -106,7 +135,7 @@ public final class Locator implements ILocator {
         }
 
         int length = httpConn.getContentLength();
-        if (length <= 0 || length > 20 * 1024 * 1024) {
+        if (length <= 0 || length > 64 * 1024 * 1024) {
             throw new InputMismatchException("invalid ip data");
         }
         InputStream is = httpConn.getInputStream();
@@ -129,7 +158,14 @@ public final class Locator implements ILocator {
 
         is.close();
 
-        return loadBinary(data);
+        String path = url.getPath();
+        if (path.toLowerCase().endsWith("datx")) {
+            return loadBinary(data, true);
+        } else if (path.toLowerCase().endsWith("dat")) {
+            return loadBinary(data, false);
+        } else {
+            return loadBinaryUnkown(data);
+        }
     }
 
     public static Locator loadFromLocal(String filePath) throws IOException {
@@ -149,10 +185,16 @@ public final class Locator implements ILocator {
         }
         fi.close();
 
-        return loadBinary(b);
+        if (filePath.toLowerCase().endsWith("datx")) {
+            return loadBinary(b, true);
+        } else if (filePath.toLowerCase().endsWith("dat")) {
+            return loadBinary(b, false);
+        } else {
+            return loadBinaryUnkown(b);
+        }
     }
 
-    public static Locator loadFromStream(InputStream in) throws Exception {
+    public static Locator loadFromStream(InputStream in, boolean x) throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[16 * 1024];
         int n;
@@ -161,11 +203,47 @@ public final class Locator implements ILocator {
             byteArrayOutputStream.write(buffer, 0, n);
         }
 
-        return loadBinary(byteArrayOutputStream.toByteArray());
+        return loadBinary(byteArrayOutputStream.toByteArray(), x);
     }
 
-    public static Locator loadBinary(byte[] ipdb) {
+    public static Locator loadFromStreamUnkown(InputStream in) throws Exception {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[16 * 1024];
+        int n;
+
+        while ((n = in.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, n);
+        }
+
+        return loadBinaryUnkown(byteArrayOutputStream.toByteArray());
+    }
+
+    public static Locator loadFromStreamOld(InputStream in, boolean x) throws Exception {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        byte[] buffer = new byte[16 * 1024];
+        int n;
+
+        while ((n = in.read(buffer)) != -1) {
+            byteArrayOutputStream.write(buffer, 0, n);
+        }
+
+        return loadBinary(byteArrayOutputStream.toByteArray(), x);
+    }
+
+    public static Locator loadBinary(byte[] ipdb, boolean x) {
+        return new Locator(ipdb, x);
+    }
+
+    public static Locator loadBinaryUnkown(byte[] ipdb) {
         return new Locator(ipdb);
+    }
+
+    public static Locator loadBinaryOld(byte[] ipdb) {
+        return loadBinary(ipdb, false);
+    }
+
+    public static Locator loadBinaryX(byte[] ipdb) {
+        return loadBinary(ipdb, true);
     }
 
     public static void main(String[] args) {
@@ -186,14 +264,14 @@ public final class Locator implements ILocator {
         int mid = 0;
         while (start < end) {
             mid = (start + end) / 2;
-            long l = 0xffffffffL & ((long) indexData1[mid]);
+            long l = 0xffffffffL & ((long) indexData[mid]);
             if (ip > l) {
                 start = mid + 1;
             } else {
                 end = mid;
             }
         }
-        long l = ((long) indexData1[end]) & 0xffffffffL;
+        long l = ((long) indexData[end]) & 0xffffffffL;
         if (l >= ip) {
             return end;
         }
@@ -211,15 +289,15 @@ public final class Locator implements ILocator {
     }
 
     public LocationInfo find(byte[] ipBin) {
-        int end = indexData1.length - 1;
+        int end = indexData.length - 1;
         int a = 0xff & ((int) ipBin[0]);
         if (a != 0xff) {
             end = index[a + 1];
         }
         long ip = (long) bigEndian(ipBin, 0) & 0xffffffffL;
         int idx = findIndexOffset(ip, index[a], end);
-        int off = indexData2[idx];
-        return buildInfo(ipData, textOffset - 1024 + off, 0xff & (int) indexData3[idx]);
+        int off = textStartIndex[idx];
+        return buildInfo(ipData, textOffset + off, 0xffff & (int) textLengthIndex[idx]);
     }
 
     public LocationInfo find(int address) {
