@@ -2,6 +2,15 @@ IP 17mon java version, 比官方的速度快很多，支持监视文件改动自
 
 IP库请从 ipip.net 下载
 
+添加依赖：
+```
+<dependency>
+  <groupId>com.qiniu</groupId>
+  <artifactId>ip17mon</artifactId>
+  <version>0.2.1</version>
+</dependency>
+```
+
 使用方法：
 
 首选构建一个 `Locator` ，支持从不同的地方加载IP库，比如远程URL，或者本地的文件。
