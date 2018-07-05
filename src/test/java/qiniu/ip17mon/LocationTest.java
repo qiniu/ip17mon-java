@@ -67,6 +67,7 @@ public class LocationTest {
         String s = "中国\t上海\t上海\t浦东\t电信";
         LocationInfo l = Locator.buildInfo(s.getBytes(), 0, s.getBytes().length);
         Assert.assertEquals(new LocationInfo("中国", "上海", "上海", "电信"), l);
+        Assert.assertArrayEquals(new String[]{"中国", "上海", "上海", "电信"}, l.toStringArray());
     }
 
     private void checkFreeLocator(Locator locator) {

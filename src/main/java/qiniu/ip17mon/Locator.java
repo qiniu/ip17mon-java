@@ -7,7 +7,7 @@ import java.nio.charset.Charset;
 import java.util.InputMismatchException;
 
 public final class Locator implements ILocator {
-    public static final String VERSION = "0.2.1";
+    public static final String VERSION = "0.2.2";
     private static final Charset Utf8 = Charset.forName("UTF-8");
     private final byte[] ipData;
     private final int textOffset;
@@ -15,19 +15,16 @@ public final class Locator implements ILocator {
     private final int[] indexData;
     private final int[] textStartIndex;
     private final short[] textLengthIndex;
-    public final boolean x;
-
 
     private Locator(byte[] data) {
         this(data, (data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0) && data[8] == 0 && data[9] == 0);
     }
 
-    private Locator(byte[] data, boolean x) {
-        this.x = x;
+    private Locator(byte[] data, boolean datx) {
         this.ipData = data;
         int offset = bigEndian(data, 0);
         this.index = new int[256];
-        if (x) {
+        if (datx) {
 
             textOffset = offset - 256 * 256 * 4;
 

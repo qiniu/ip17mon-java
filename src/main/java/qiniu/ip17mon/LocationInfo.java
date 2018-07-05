@@ -32,4 +32,9 @@ public final class LocationInfo {
     public String toString() {
         return country + " " + state + " " + city + " " + isp;
     }
+
+    public String[] toStringArray() {
+        return new String[]{country, state, city, isp};
+    }
+
 }
